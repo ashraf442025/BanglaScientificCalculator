@@ -24,6 +24,7 @@ warn_on_root = 1
 
 [buildozer:android]
 
-android.api = 35
-android.minapi = 23
+android.api = 33
+android.minapi = 24
+android.ndk_api = 24
 android.archs = arm64-v8a
