@@ -11,11 +11,6 @@ jobs:
     name: Build APK
     runs-on: ubuntu-22.04
 
-    env:
-      ANDROID_HOME: ${{ github.workspace }}/android-sdk
-      ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
-      P4A_RELEASE: "2024.01.21"
-
     steps:
 
       - name: Checkout
@@ -39,6 +34,7 @@ jobs:
             git \
             zip \
             unzip \
+            wget \
             autoconf \
             automake \
             libtool \
@@ -50,70 +46,67 @@ jobs:
             libffi-dev \
             libssl-dev
 
-      - name: Install Android command line tools
-        run: |
-          mkdir -p "$ANDROID_HOME/cmdline-tools"
-
-          cd "$ANDROID_HOME/cmdline-tools"
-
-          wget -q \
-            https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip \
-            -O tools.zip
-
-          unzip -q tools.zip
-
-          rm tools.zip
-
-          mv cmdline-tools latest
-
-          mkdir -p "$ANDROID_HOME/tools/bin"
-
-          ln -sf \
-            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
-            "$ANDROID_HOME/tools/bin/sdkmanager"
-
-          ln -sf \
-            "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" \
-            "$ANDROID_HOME/tools/bin/avdmanager"
-
-      - name: Add Android tools to PATH
-        run: |
-          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
-          echo "$ANDROID_HOME/platform-tools" >> "$GITHUB_PATH"
-          echo "$ANDROID_HOME/tools/bin" >> "$GITHUB_PATH"
-
-      - name: Check sdkmanager
-        run: |
-          "$ANDROID_HOME/tools/bin/sdkmanager" --version
-
-      - name: Accept Android licenses
-        run: |
-          yes | "$ANDROID_HOME/tools/bin/sdkmanager" --licenses || true
-
-      - name: Install Android SDK packages
-        run: |
-          "$ANDROID_HOME/tools/bin/sdkmanager" \
-            "platform-tools" \
-            "platforms;android-35" \
-            "build-tools;35.0.0"
-
       - name: Install Buildozer
         run: |
           python -m pip install --upgrade pip
           python -m pip install buildozer
           python -m pip install "cython==0.29.36"
 
-      - name: Prepare Buildozer
+      - name: Prepare Buildozer Android SDK
+        shell: bash
         run: |
-          mkdir -p "$HOME/.buildozer/android/platform/android-sdk/tools/bin"
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
 
-          ln -sf \
-            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" \
-            "$HOME/.buildozer/android/platform/android-sdk/tools/bin/sdkmanager"
+          mkdir -p "$SDK/cmdline-tools"
 
-          ln -sf \
-            "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" \
-            "$HOME/.buildozer/android/platform/android-sdk/tools/bin/avdmanager"
+          cd "$SDK/cmdline-tools"
+
+          wget -q \
+            https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip \
+            -O commandline-tools.zip
+
+          rm -rf latest
+
+          unzip -q commandline-tools.zip
+
+          mv cmdline-tools latest
+
+          rm commandline-tools.zip
+
+          echo "ANDROID_SDK_ROOT=$SDK" >> "$GITHUB_ENV"
+          echo "ANDROID_HOME=$SDK" >> "$GITHUB_ENV"
+
+          echo "$SDK/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          echo "$SDK/platform-tools" >> "$GITHUB_PATH"
+          echo "$SDK/build-tools/37.0.0" >> "$GITHUB_PATH"
+
+      - name: Accept Android licenses
+        shell: bash
+        run: |
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+
+          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses || true
+
+      - name: Install required Android SDK packages
+        shell: bash
+        run: |
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+
+          "$SDK/cmdline-tools/latest/bin/sdkmanager" \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;37.0.0"
+
+      - name: Verify Android Build Tools
+        shell: bash
+        run: |
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+
+          test -f "$SDK/build-tools/37.0.0/aapt2"
+          test -f "$SDK/build-tools/37.0.0/aidl"
+
+          echo "Android Build Tools 37.0.0 installed successfully."
+          "$SDK/build-tools/37.0.0/aidl" --version
 
       - name: Build APK
         run: |
