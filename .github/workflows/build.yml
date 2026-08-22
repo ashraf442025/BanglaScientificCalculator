@@ -98,15 +98,18 @@ jobs:
             "build-tools;37.0.0"
 
       - name: Verify Android Build Tools
-        shell: bash
-        run: |
-          SDK="$HOME/.buildozer/android/platform/android-sdk"
+  shell: bash
+  run: |
+    SDK="$HOME/.buildozer/android/platform/android-sdk"
 
-          test -f "$SDK/build-tools/37.0.0/aapt2"
-          test -f "$SDK/build-tools/37.0.0/aidl"
+    test -f "$SDK/build-tools/37.0.0/aapt2"
+    test -f "$SDK/build-tools/37.0.0/aidl"
 
-          echo "Android Build Tools 37.0.0 installed successfully."
-          "$SDK/build-tools/37.0.0/aidl" --version
+    echo "Android Build Tools 37.0.0 installed successfully."
+    echo "AAPT2 found:"
+    ls -lh "$SDK/build-tools/37.0.0/aapt2"
+    echo "AIDL found:"
+    ls -lh "$SDK/build-tools/37.0.0/aidl"
 
       - name: Build APK
         run: |
