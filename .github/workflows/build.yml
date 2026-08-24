@@ -8,7 +8,6 @@ on:
 
 jobs:
   build:
-    name: Build APK
     runs-on: ubuntu-22.04
 
     steps:
@@ -26,7 +25,7 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Install Linux dependencies
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -37,12 +36,13 @@ jobs:
             automake \
             libtool \
             pkg-config \
+            cmake \
+            libffi-dev \
+            libssl-dev \
             zlib1g-dev \
             libncurses5-dev \
             libncursesw5-dev \
-            cmake \
-            libffi-dev \
-            libssl-dev
+            libltdl-dev
 
       - name: Install Buildozer
         run: |
@@ -50,14 +50,57 @@ jobs:
           python -m pip install buildozer
           python -m pip install "cython==0.29.36"
 
-      - name: Accept Android SDK license
+      - name: Prepare Buildozer Android SDK
         run: |
-          mkdir -p "$HOME/.buildozer"
-          buildozer android p4a -- --help
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+
+          mkdir -p "$SDK/cmdline-tools"
+
+          cd "$SDK/cmdline-tools"
+
+          wget -q \
+            https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip \
+            -O tools.zip
+
+          unzip -q tools.zip
+
+          rm tools.zip
+
+          rm -rf latest
+          mv cmdline-tools latest
+
+          mkdir -p "$SDK/tools/bin"
+
+          ln -sf \
+            "$SDK/cmdline-tools/latest/bin/sdkmanager" \
+            "$SDK/tools/bin/sdkmanager"
+
+          ln -sf \
+            "$SDK/cmdline-tools/latest/bin/avdmanager" \
+            "$SDK/tools/bin/avdmanager"
+
+      - name: Accept SDK licenses
+        run: |
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+
+          yes | "$SDK/tools/bin/sdkmanager" \
+            --sdk_root="$SDK" \
+            --licenses || true
+
+      - name: Install Android packages
+        run: |
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+
+          "$SDK/tools/bin/sdkmanager" \
+            --sdk_root="$SDK" \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;37.0.0" \
+            "ndk;27.2.12479018"
 
       - name: Build APK
         run: |
-          buildozer -v android debug
+          buildozer android debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
