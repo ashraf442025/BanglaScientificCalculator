@@ -80,9 +80,6 @@ jobs:
             "$SDK/cmdline-tools/latest/bin/avdmanager" \
             "$SDK/tools/bin/avdmanager"
 
-          echo "sdkmanager:"
-          "$SDK/tools/bin/sdkmanager" --version
-
       - name: Accept SDK licenses
         run: |
           SDK="$HOME/.buildozer/android/platform/android-sdk"
@@ -123,12 +120,94 @@ jobs:
 
           echo "Android SDK verification successful."
 
+      # ---------------------------------------------------------
+      # IMPORTANT:
+      # p4a master currently upgrades its temporary build venv
+      # to pip 26.x, which is incompatible with p4a's installer.py.
+      #
+      # We clone p4a ourselves and patch that command to stay
+      # below pip 26.
+      # ---------------------------------------------------------
+      - name: Prepare patched Python-for-Android
+        run: |
+          P4A="$GITHUB_WORKSPACE/.buildozer/android/platform/python-for-android"
+
+          rm -rf "$P4A"
+
+          mkdir -p "$(dirname "$P4A")"
+
+          git clone \
+            --branch master \
+            --single-branch \
+            https://github.com/kivy/python-for-android.git \
+            "$P4A"
+
+          cd "$P4A"
+
+          echo "Original p4a commit:"
+          git log -1 --oneline
+
+          echo "Patching pip upgrade..."
+
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("pythonforandroid/build.py")
+          text = path.read_text()
+
+          old = "pip install -U pip"
+          new = "pip install -U 'pip<26'"
+
+          if old not in text:
+              raise SystemExit(
+                  "ERROR: Expected 'pip install -U pip' was not found in "
+                  "pythonforandroid/build.py"
+              )
+
+          text = text.replace(old, new)
+
+          old_venv = "host_python, '-m', 'venv', 'venv'"
+          new_venv = "host_python, '-m', 'venv', '--clear', 'venv'"
+
+          if old_venv in text:
+              text = text.replace(old_venv, new_venv)
+          else:
+              print("WARNING: venv creation line was not found; continuing.")
+
+          path.write_text(text)
+          PY
+
+          echo "Patched p4a:"
+          grep -n -A2 -B2 "pip install -U" pythonforandroid/build.py || true
+
+          echo "Checking venv creation:"
+          grep -n "venv.*--clear" pythonforandroid/build.py || true
+
+      - name: Clean Buildozer build directories
+        run: |
+          rm -rf .buildozer/android/platform/build-*
+          rm -rf .buildozer/android/platform/build
+          rm -rf .buildozer/android/platform/build-arm64-v8a_armeabi-v7a
+
+          echo "Build directories cleaned."
+
       - name: Show build environment
         run: |
+          echo "Host Python:"
           python --version
+
+          echo "Host pip:"
           python -m pip --version
+
+          echo "Buildozer:"
           buildozer --version
-          git --version
+
+          echo "Cython:"
+          cython --version
+
+          echo "p4a:"
+          cd "$GITHUB_WORKSPACE/.buildozer/android/platform/python-for-android"
+          git log -1 --oneline
 
       - name: Build APK
         run: |
