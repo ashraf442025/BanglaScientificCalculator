@@ -11,7 +11,7 @@ version = 1.0
 
 requirements = python3,kivy
 
-p4a.branch = master
+p4a.source_dir = .buildozer/android/platform/python-for-android
 
 orientation = portrait
 
