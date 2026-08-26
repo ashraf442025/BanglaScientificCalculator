@@ -11,6 +11,8 @@ version = 1.0
 
 requirements = python3,kivy,charset_normalizer==3.3.2
 
+p4a.branch = master
+
 orientation = portrait
 
 fullscreen = 0
