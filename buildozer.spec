@@ -9,7 +9,7 @@ source.include_exts = py,kv,png,jpg,jpeg,ttf
 
 version = 1.0
 
-requirements = python3,kivy,charset_normalizer==3.3.2
+requirements = python3,kivy
 
 p4a.branch = master
 
