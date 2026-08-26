@@ -25,6 +25,6 @@ warn_on_root = 1
 [buildozer:android]
 
 android.api = 35
-android.minapi = 23
+android.minapi = 24
 android.ndk = 27.2.12479018
 android.accept_sdk_license = True
