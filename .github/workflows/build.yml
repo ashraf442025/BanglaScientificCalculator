@@ -94,11 +94,13 @@ jobs:
           echo "Installed Build Tools:"
           ls -la "$SDK/build-tools"
 
-          echo "AIDL version:"
-          "$SDK/build-tools/35.0.0/aidl" --version
+          echo "Checking AIDL executable:"
+          "$SDK/build-tools/35.0.0/aidl" || test $? -eq 1
 
-          echo "Android API 35:"
-          ls -la "$SDK/platforms/android-35"
+          echo "Checking Android API 35:"
+          test -f "$SDK/platforms/android-35/android.jar"
+
+          echo "Android SDK verification successful."
 
       - name: Show build environment
         run: |
