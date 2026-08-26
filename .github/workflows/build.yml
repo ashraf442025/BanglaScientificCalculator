@@ -50,6 +50,56 @@ jobs:
           python -m pip install "buildozer==1.5.0"
           python -m pip install "cython==0.29.34"
 
+      - name: Prepare Buildozer Android SDK
+        run: |
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+
+          mkdir -p "$SDK/cmdline-tools"
+
+          cd "$SDK/cmdline-tools"
+
+          wget -q \
+            https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip \
+            -O tools.zip
+
+          unzip -q tools.zip
+          rm tools.zip
+
+          rm -rf latest
+          mv cmdline-tools latest
+
+      - name: Accept SDK licenses
+        run: |
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+
+          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" \
+            --sdk_root="$SDK" \
+            --licenses
+
+      - name: Install Android packages
+        run: |
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+
+          "$SDK/cmdline-tools/latest/bin/sdkmanager" \
+            --sdk_root="$SDK" \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0" \
+            "ndk;27.2.12479018"
+
+      - name: Verify Android SDK
+        run: |
+          SDK="$HOME/.buildozer/android/platform/android-sdk"
+
+          echo "Installed Build Tools:"
+          ls -la "$SDK/build-tools"
+
+          echo "AIDL version:"
+          "$SDK/build-tools/35.0.0/aidl" --version
+
+          echo "Android API 35:"
+          ls -la "$SDK/platforms/android-35"
+
       - name: Show build environment
         run: |
           python --version
