@@ -32,6 +32,7 @@ jobs:
             git \
             zip \
             unzip \
+            wget \
             autoconf \
             automake \
             libtool \
@@ -68,24 +69,38 @@ jobs:
           rm -rf latest
           mv cmdline-tools latest
 
+          # Buildozer 1.5.0 expects the legacy tools/bin path.
+          mkdir -p "$SDK/tools/bin"
+
+          ln -sf \
+            "$SDK/cmdline-tools/latest/bin/sdkmanager" \
+            "$SDK/tools/bin/sdkmanager"
+
+          ln -sf \
+            "$SDK/cmdline-tools/latest/bin/avdmanager" \
+            "$SDK/tools/bin/avdmanager"
+
+          echo "sdkmanager:"
+          "$SDK/tools/bin/sdkmanager" --version
+
       - name: Accept SDK licenses
         run: |
           SDK="$HOME/.buildozer/android/platform/android-sdk"
 
-          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" \
+          yes | "$SDK/tools/bin/sdkmanager" \
             --sdk_root="$SDK" \
             --licenses
 
-      - name: Install Android packages
+      - name: Install Android SDK packages
         run: |
           SDK="$HOME/.buildozer/android/platform/android-sdk"
 
-          "$SDK/cmdline-tools/latest/bin/sdkmanager" \
+          "$SDK/tools/bin/sdkmanager" \
             --sdk_root="$SDK" \
             "platform-tools" \
             "platforms;android-35" \
             "build-tools;35.0.0" \
-            "ndk;27.2.12479018"
+            "ndk;28.2.13676358"
 
       - name: Verify Android SDK
         run: |
@@ -94,11 +109,17 @@ jobs:
           echo "Installed Build Tools:"
           ls -la "$SDK/build-tools"
 
-          echo "Checking AIDL executable:"
+          echo "Checking AIDL:"
           "$SDK/build-tools/35.0.0/aidl" || test $? -eq 1
 
           echo "Checking Android API 35:"
           test -f "$SDK/platforms/android-35/android.jar"
+
+          echo "Checking SDK Manager:"
+          "$SDK/tools/bin/sdkmanager" --version
+
+          echo "Checking NDK:"
+          ls -la "$SDK/ndk"
 
           echo "Android SDK verification successful."
 
